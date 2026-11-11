@@ -14,6 +14,9 @@ appsettings.Local.json
 *.key
 Frontend/assets/img/uploads/*
 !Frontend/assets/img/uploads/.gitkeep
+Frontend/_headers
+deploy.env
+*.p12
 .DS_Store
 Thumbs.db
 desktop.ini

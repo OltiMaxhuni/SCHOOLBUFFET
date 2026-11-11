@@ -18,7 +18,7 @@ euro dhe ora e shkoll ndjek zonen Europe/Tirane. Te gjitha tekstet e nderfaqes j
 | ORM | Entity Framework Core 8 |
 | Provider | Npgsql.EntityFrameworkCore.PostgreSQL 8 |
 | Kohe reale | Server-Sent Events, me radhe ngjarjesh te kufizuara per lidhje nderprerese |
-| Autentifikimi | Cookie e mbyllur (HttpOnly, SameSite=Strict) me role perdoruesish |
+| Autentifikimi | Cookie e mbyllur (HttpOnly, SameSite=Strict ne zhvillim, SameSite=None dhe Secure ne prodhim) me role perdoruesish |
 | Fjalakalimi | PBKDF2-SHA256 me 210 000 iteracione dhe krip te vecante per perdorues |
 
 ## Rolet dhe e drejtat
@@ -113,6 +113,11 @@ SchoolBuffet/
     schema.sql                            Skema referuese PostgreSQL
     create-role-and-database.sql          Urdher per rollin dhe bazen e te dhenave
     setup-postgres.ps1                    Skript konfigurimi me pyetje per fjalakalime
+  Dockerfile                              Imazhi ASP.NET Core 8 per Render
+  render.yaml                             Blueprint Render: API-ja, health check, disku, kontrata e ndryshoreve
+  netlify.toml                            Build-i dhe stenda publike e Netlify
+  scripts/
+    netlify-config.mjs                    Gjeneron js/env.js dhe _headers nga SB_API_BASE
   README.md
   .gitignore
 ```
@@ -268,7 +273,13 @@ Per zhvillim me rifreskim te menjehershem mund te perdorsh cdo server statik bre
 ## Siguria
 
 - Fjalakalimet ruhen si hash PBKDF2-SHA256 me 210 000 iteracione, me krip te vecante per secilin perdorues.
-- Seanca mban cookie `HttpOnly`, `SameSite=Strict`, `Path=/` me kohe gjatesie 8 oresh.
+- Seanca mban cookie `HttpOnly`, `Path=/` me kohe gjatesie 8 oresh. Ne zhvillim eshte `SameSite=Strict`; ne
+  prodhim (`ASPNETCORE_ENVIRONMENT=Production`) eshte `SameSite=None` me `Secure`, qe te punoje nga Netlify te
+  Render.
+- Kur `Cors:AllowedOrigins` ka vlera, API-ja lejon origin-in e Netlify me `AllowCredentials`. Origjina lejohet
+  nga lista e konfiguruar, nuk merret nga kerkesa.
+- `Network:ForwardedHeaders=true` ben qe kufizimi i perpjekesh per IP dhe gjykimi i `Secure` te shohin adresen
+  dhe protokollin real pas balancuesit te Render.
 - `api/admin/*` kerkon Admin ose Staff; shkrimet e menyse kerkojne Admin; `api/kitchen/*` lejohet per
   Admin, Staff dhe Kitchen.
 - Hyrja kufizohet ne 8 perpjekje per minute per adresse IP.
@@ -280,6 +291,56 @@ Per zhvillim me rifreskim te menjehershem mund te perdorsh cdo server statik bre
 - Pergjigjet `api/*` sherbehen me `Cache-Control: no-store` qe te dhenat financiare te mos ruhen ne memorie.
 - Ngarkesat e fotove kontrollohen per tipin, madhesine dhe emrin, dhe ruhen ne folder te menaxhuar.
 - Te dhenat e lidhjes me databazen dhe fjalakalimet e perdoruesve nuk futen ne repository.
+
+## Prodhimi me Netlify, Render dhe Supabase
+
+Sistemi ndahet ne tri sherbime: Frontend ne Netlify, API-ja ASP.NET Core ne Render dhe PostgreSQL ne Supabase.
+
+### Kontrata e ndryshoreve
+
+| Vendi | Ndryshorja | Vlera |
+| --- | --- | --- |
+| Netlify | `SB_API_BASE` | Adresa e API-se ne Render, p.sh. `https://schoolbuffet.onrender.com` |
+| Render | `ConnectionStrings__SchoolBuffet` | Lidhja Supabase me `SSL Mode=VerifyFull` |
+| Render | `ASPNETCORE_ENVIRONMENT` | `Production` |
+| Render | `Cors__AllowedOrigins__0` | Origjina e Netlify, p.sh. `https://schoolbuffet.netlify.app` |
+| Render | `Database__SeedDemoOrders` | `false` |
+| Render | `Network__ForwardedHeaders` | `true` |
+| Render | `Frontend__UploadPath` | `/opt/data/uploads` |
+| Render | `SCHOOLBUFFET_ADMIN_PASSWORD`, `SCHOOLBUFFET_STAFF_PASSWORD`, `SCHOOLBUFFET_KITCHEN_PASSWORD` | Fjalakalime te forte, vetem ne Render |
+
+Vlerat e ndjeshme vendosen ne dashboardin e Render dhe nuk futen ne repository. `render.yaml` i shanon me
+`sync: false`, keshtu qe skedari ne Git nuk permban asnje sekret.
+
+### Hapat i vendosjes
+
+1. Supabase: krijo projektin, merr lidhjen nga Session pooler (porti 5432) dhe ruaje si vleren e
+   `ConnectionStrings__SchoolBuffet` ne Render. Migrimet Entity Framework ekzekutohen gjate nisen e API-se.
+2. Render: krijo Blueprint nga `render.yaml`. Ploteso 4 ndryshoret `sync: false` ne dashboard, pastaj
+   konfirmo `GET /api/health`.
+3. Netlify: import nga GitHub, deploy folderi vjen nga `netlify.toml`, dhe vendos `SB_API_BASE` me adresen e
+   Render. Build-i gjeneron `Frontend/js/env.js` dhe `Frontend/_headers`.
+4. Hyr nga `admin.html`, krijo nje porosie nga `index.html` dhe ndoqe ne `kitchen.html` pa rizarqim.
+
+### Cfare e ben te mundur ndarjen
+
+- `Frontend/js/env.js` mban `SB.env.apiBase`. Me vlere bosh aplikacioni sillet same-origin si me pare, prandaj
+  zhvillimi lokal dhe nisja nga API-ja nuk preken.
+- `SB.api` i parapasin origjinen adresave `api/...` dhe perdor `credentials: 'include'` kur API-ja eshte ne
+  origin tjeter; `SB.realtime` ben te njejten per rrjedhen SSE.
+- `SB.assetUrl` u jep fotove te produkteve adresen e API-se, sepse skedadat e ngarkuara ruhen ne diskun e Render.
+- CSP ne prodhim shkruhet nga build-i i Netlify ne `Frontend/_headers`, me `connect-src` dhe `img-src` qe lejojne
+  vetem originin e Render.
+
+### Kufizime per t'i ditur
+
+- Plani falas i Render e ndalon instance-in pas njeperi pa qarkullim; rrjedhet SSE dhe njoftimet kohe reale
+  ndalen derisa nje kerkes e re ta ngre serish, prandaj `render.yaml` kerkon `plan: starter` me disk te perhershem.
+- Pa disk te perhershem, fotot e ngarkuara humbin pas rimbisjes se imazhit.
+- Transaction pooler i Supabase (porti 6543) nuk perputhet me gatitjet e Entity Framework pa rregullime shtese;
+  perdor Session pooler ose lidhjen direkte.
+- Nese ndryshoret `SCHOOLBUFFET_*_PASSWORD` mungojne gjate nises se pare, aplikacioni gjeneron fjalakalime dhe i
+  printon ato vetem ne logun e asaj nise.
 
 ## Testet e kryera
 

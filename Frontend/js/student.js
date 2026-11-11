@@ -140,7 +140,7 @@
   function productCard(product) {
     return '<article class="card product reveal">' +
       '<div class="product-media">' +
-        '<img src="' + SB.esc(product.imagePath) + '" alt="' + SB.esc(product.name) + '" loading="lazy" width="400" height="300">' +
+        '<img src="' + SB.esc(SB.assetUrl(product.imagePath)) + '" alt="' + SB.esc(product.name) + '" loading="lazy" width="400" height="300">' +
         (product.badge ? '<span class="product-badge">' + SB.esc(product.badge) + '</span>' : '') +
         (product.isRecommended ? '<span class="product-star">' + SB.icon('star', 'icon-sm') + '</span>' : '') +
       '</div>' +
@@ -324,7 +324,7 @@
 
     dom.cartBody.innerHTML = state.cart.map(function (item) {
       return '<div class="cart-line">' +
-        '<img src="' + SB.esc(item.image) + '" alt="' + SB.esc(item.name) + '" width="54" height="44">' +
+        '<img src="' + SB.esc(SB.assetUrl(item.image)) + '" alt="' + SB.esc(item.name) + '" width="54" height="44">' +
         '<div><h4>' + SB.esc(item.name) + '</h4>' +
           '<p class="tiny muted">' + SB.money(item.price) + ' x ' + item.qty + ' = ' + SB.money(item.price * item.qty) + '</p>' +
           '<span class="stepper">' +

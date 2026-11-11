@@ -40,6 +40,10 @@ public sealed class AppSettings
 
     public bool SeedOnStartup { get; init; } = true;
 
+    public bool SeedDemoOrders { get; init; } = true;
+
+    public bool UseForwardedHeaders { get; init; }
+
     public static AppSettings From(IConfiguration configuration)
     {
         return new AppSettings
@@ -65,7 +69,9 @@ public sealed class AppSettings
             MaxUploadKilobytes = configuration.GetValue("Uploads:MaxKilobytes", 3000),
             AllowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<List<string>>() ?? new List<string>(),
             MigrateOnStartup = configuration.GetValue("Database:MigrateOnStartup", true),
-            SeedOnStartup = configuration.GetValue("Database:SeedOnStartup", true)
+            SeedOnStartup = configuration.GetValue("Database:SeedOnStartup", true),
+            SeedDemoOrders = configuration.GetValue("Database:SeedDemoOrders", true),
+            UseForwardedHeaders = configuration.GetValue("Network:ForwardedHeaders", false)
         };
     }
 }

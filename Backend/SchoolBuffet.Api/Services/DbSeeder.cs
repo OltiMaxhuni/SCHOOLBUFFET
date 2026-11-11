@@ -217,6 +217,11 @@ public sealed class DbSeeder
 
     private async Task<int> EnsureDemoOrdersAsync()
     {
+        if (!_settings.SeedDemoOrders)
+        {
+            return 0;
+        }
+
         if (await _db.Orders.AnyAsync())
         {
             return 0;

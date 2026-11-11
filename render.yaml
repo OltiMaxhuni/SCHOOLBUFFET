@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: schoolbuffet-api
+    env: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    disk:
+      name: schoolbuffet-uploads
+      mountPath: /opt/data
+      sizeGB: 1
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Database__SeedDemoOrders
+        value: "false"
+      - key: Network__ForwardedHeaders
+        value: "true"
+      - key: Frontend__UploadPath
+        value: /opt/data/uploads
+      - key: Cors__AllowedOrigins__0
+        value: https://schoolbuffet.netlify.app
+      - key: ConnectionStrings__SchoolBuffet
+        sync: false
+      - key: SCHOOLBUFFET_ADMIN_PASSWORD
+        sync: false
+      - key: SCHOOLBUFFET_STAFF_PASSWORD
+        sync: false
+      - key: SCHOOLBUFFET_KITCHEN_PASSWORD
+        sync: false

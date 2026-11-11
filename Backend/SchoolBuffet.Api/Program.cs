@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.StaticFiles;
@@ -48,8 +49,8 @@ builder.Services
     {
         options.Cookie.Name = "schoolbuffet.admin";
         options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Strict;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = builder.Environment.IsProduction() ? SameSiteMode.None : SameSiteMode.Strict;
+        options.Cookie.SecurePolicy = builder.Environment.IsProduction() ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = context =>
@@ -67,6 +68,16 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+
+if (settings.UseForwardedHeaders)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
+}
 
 if (settings.AllowedOrigins.Count > 0)
 {
@@ -129,6 +140,11 @@ builder.Logging.AddSimpleConsole(console =>
 });
 
 WebApplication app = builder.Build();
+
+if (settings.UseForwardedHeaders)
+{
+    app.UseForwardedHeaders();
+}
 
 string frontendPath = FrontendLocator.Resolve(app.Environment, settings.FrontendPath);
 if (!Directory.Exists(frontendPath))
@@ -207,6 +223,24 @@ app.UseDefaultFiles(new DefaultFilesOptions
     FileProvider = frontendFiles,
     DefaultFileNames = new List<string> { "index.html" }
 });
+
+string uploadsPath = Path.TrimEndingDirectorySeparator(FrontendLocator.Uploads(app.Environment, settings.FrontendPath, settings.UploadPath));
+
+if (!uploadsPath.StartsWith(Path.TrimEndingDirectorySeparator(frontendPath) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+{
+    Directory.CreateDirectory(uploadsPath);
+
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(uploadsPath),
+        RequestPath = "/assets/img/uploads",
+        ContentTypeProvider = contentTypes,
+        OnPrepareResponse = context =>
+        {
+            context.Context.Response.Headers["Cache-Control"] = "public, max-age=600";
+        }
+    });
+}
 
 app.UseStaticFiles(new StaticFileOptions
 {

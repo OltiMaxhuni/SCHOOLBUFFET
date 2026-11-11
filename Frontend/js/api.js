@@ -37,11 +37,22 @@
     return 'Kerkesa deshtoi. Kontrollo lidhjen me internetin.';
   }
 
+  function resolve(path) {
+    var base = SB.env && SB.env.apiBase ? String(SB.env.apiBase).replace(/\/+$/, '') : '';
+
+    if (!base || /^(https?:)?\/\//i.test(path) || path.indexOf('data:') === 0) {
+      return path;
+    }
+
+    return base + '/' + String(path).replace(/^\/+/, '');
+  }
+
   async function request(path, options) {
     var settings = options || {};
+    var target = resolve(path);
     var init = {
       method: settings.method || 'GET',
-      credentials: 'same-origin',
+      credentials: target === path ? 'same-origin' : 'include',
       headers: {}
     };
 
@@ -56,7 +67,7 @@
 
     var response;
     try {
-      response = await fetch(path, init);
+      response = await fetch(target, init);
     } catch (networkError) {
       throw ApiError('Serveri i byfese nuk arrihet. Sigurohu qe Backend-i eshte ne pune.', 0, null);
     }
@@ -98,6 +109,10 @@
     upload: function (path, formData) {
       return request(path, { method: 'POST', body: formData });
     }
+  };
+
+  SB.assetUrl = function (path) {
+    return resolve(path);
   };
 
   SB.isAuthError = function (error) {

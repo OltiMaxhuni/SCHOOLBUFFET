@@ -1,0 +1,6 @@
+[build]
+  command = "node scripts/netlify-config.mjs"
+  publish = "Frontend"
+
+[build.environment]
+  NODE_VERSION = "22"

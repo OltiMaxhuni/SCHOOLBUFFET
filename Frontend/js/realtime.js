@@ -125,7 +125,7 @@
   SB.realtime = {
     connect: function (options) {
       var settings = options || {};
-      openStream(settings.url || 'api/realtime/stream', settings.pollMs || 6000);
+      openStream(SB.assetUrl(settings.url || 'api/realtime/stream'), settings.pollMs || 6000);
 
       return function () {
         SB.realtime.disconnect();

@@ -56,7 +56,7 @@
 
   function productRow(product) {
     return '<tr>' +
-      '<td><div class="prod-cell"><img src="' + SB.esc(product.imagePath) + '" alt="' + SB.esc(product.name) + '" width="52" height="40">' +
+      '<td><div class="prod-cell"><img src="' + SB.esc(SB.assetUrl(product.imagePath)) + '" alt="' + SB.esc(product.name) + '" width="52" height="40">' +
       '<div><b>' + SB.esc(product.name) + '</b>' +
       '<p class="tiny muted">' + SB.esc(product.badge || 'Pa etikete') + (product.isRecommended ? ' · i rekomanduar' : '') + '</p></div></div></td>' +
       '<td>' + SB.esc(product.categoryName) + '</td>' +
@@ -163,7 +163,7 @@
 
     return '<div class="gallery">' + extra.map(function (path) {
       return '<button type="button" data-pick="' + SB.esc(path) + '"' +
-        (path === selected ? ' class="on"' : '') + '><img src="' + SB.esc(path) + '" alt="Foto e produktit" loading="lazy"></button>';
+        (path === selected ? ' class="on"' : '') + '><img src="' + SB.esc(SB.assetUrl(path)) + '" alt="Foto e produktit" loading="lazy"></button>';
     }).join('') + '</div>';
   }
 
@@ -229,7 +229,7 @@
       '<input class="input" id="StockQuantity" name="StockQuantity" type="number" min="0" max="99999" value="' + SB.esc(current.stockQuantity) + '">' +
       '<span class="field-error"></span></div>' +
     '<div class="field"><label>Fotoja e produktit</label>' +
-      '<div class="preview"><img id="ImagePreview" src="' + SB.esc(current.imagePath) + '" alt="Parakalimi i fotos"></div>' +
+      '<div class="preview"><img id="ImagePreview" src="' + SB.esc(SB.assetUrl(current.imagePath)) + '" alt="Parakalimi i fotos"></div>' +
       '<input type="hidden" id="ImagePath" name="ImagePath" value="' + SB.esc(current.imagePath) + '">' +
       '<div class="row wrap mt">' +
         '<input type="file" class="input" id="ImageFile" accept="image/png,image/jpeg,image/webp,image/svg+xml">' +
