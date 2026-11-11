@@ -337,6 +337,13 @@ Vlerat e ndjeshme vendosen ne dashboardin e Render dhe nuk futen ne repository. 
 - Plani falas i Render e ndalon instance-in pas njeperi pa qarkullim; rrjedhet SSE dhe njoftimet kohe reale
   ndalen derisa nje kerkes e re ta ngre serish, prandaj `render.yaml` kerkon `plan: starter` me disk te perhershem.
 - Pa disk te perhershem, fotot e ngarkuara humbin pas rimbisjes se imazhit.
+- `*.netlify.app` dhe `*.onrender.com` ndodhen nen dy fqinja regjistrimi te ndryshme, prandaj seanca numerohet
+  si cookie nga domen tjeter dhe u mbyllen shfletojve qe ndalojne cookie-t e treta (Safari me ITP, konfigurimet e
+  ngurta te Chrome-it). `SameSite=None; Secure` mjafton vetem kur shfletyi i lejon ato.
+- Ndarja me e qendrueshme eshte nje domen i vetem i regjistruar me nenpakime, psh faqet ne `schoolbuffet.app` dhe
+  API-ja ne `api.schoolbuffet.app`: te dyja bene pjese te njejten fqinke regjistrimi, seanca behet same-site dhe
+  nuk ka nevoje per perkujdes shtese. Ne .NET 8 `CookieBuilder` nuk ofron mundesine e CHIPS, prandaj domeni i
+  perbashket eshte rruga e rekomanduar per hyrje ne shfletoj te mbyllur.
 - Transaction pooler i Supabase (porti 6543) nuk perputhet me gatitjet e Entity Framework pa rregullime shtese;
   perdor Session pooler ose lidhjen direkte.
 - Nese ndryshoret `SCHOOLBUFFET_*_PASSWORD` mungojne gjate nises se pare, aplikacioni gjeneron fjalakalime dhe i
